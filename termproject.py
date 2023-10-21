@@ -2,155 +2,20 @@
 #Andrew id: ltn2
 
 from cmu_112_graphics import *
+from colorsys import rgb_to_hls, hls_to_rgb
+from shape import *
+from furniture import *
 import math 
-
-#take in 2 1D lists and return the dot product
-def dotProduct(L1,L2):
-    result=0
-    for i in range(len(L1)):
-        result+=L1[i]*L2[i]
-    return result
-
-#take in a 2D list and return the ith col
-def getCol(L, i):
-    result =[]
-    for r in range(len(L)):
-        result.append(L[r][i])
-    return result
-
-#take in 2 2D list and return the matrix multiplication
-def matMulti(L1,L2):
-    if len(L1[0])!=len(L2):
-        print("Invalid num rows and cols")
-    result =[([0]*len(L2[0])) for i in range(len(L1))]
-    for r in range(len(L1)):
-        for c in range(len(L2[0])):
-            result[r][c]=dotProduct(L1[r], getCol(L2,c))
-    return result
-
-#projection matrix
-projMat = [[1,0,0],[0,1,0]]
-
-#rotaiton matrices around the z axis
-def rotationZ(angle):
-    return [[math.cos(angle),-math.sin(angle),0],
-    [math.sin(angle),math.cos(angle),0],
-    [0,0,1]]
-
-def rotationY(angle):
-    return [[math.cos(angle),0, math.sin(angle)],
-    [0,1,0],
-    [-math.sin(angle),0, math.cos(angle)]]
-
-def rotationX(angle):
-    return [[1,0,0],
-    [0, math.cos(angle),-math.sin(angle)],
-    [0, math.sin(angle), math.cos(angle)]]
-
-#take in a 1D list and output a 2D list of r c dim
-def reshape(L, r, c):
-    result = [([0]*c) for i in range(r)]
-    i = 0
-    for row in range(r):
-        for col in range(c):
-            result[row][col]=L[i]
-            i+=1
-    return result
-
-class Cube:
-    def __init__(self, points, angle, position, scale):
-        self.points = points
-        self.angle = angle
-        self.position = position
-        self.scale = scale
-    
-    @staticmethod
-    def connectPoints(canvas,point1, point2, L):
-        canvas.create_line(L[point1][0], L[point1][1],
-        L[point2][0], L[point2][1], fill = 'black',
-        )
-    
-    @staticmethod
-    def polygon(canvas, p1, p2, p3, p4, L, color):
-        canvas.create_polygon(L[p1][0],L[p1][1], L[p2][0], L[p2][1], L[p3][0],
-        L[p3][1], L[p4][0], L[p4][1], fill = color)
-
-    #later: take in rgb for shading based on rotation
-    def draw(self, canvas):
-        projectedPoints = []
-        for point in self.points:
-            #get the coordinated of the 2d projection
-            reshaped = reshape(point,3,1)
-            rotated2d = matMulti(rotationZ(self.angle), reshaped)
-            rotated2d = matMulti(rotationX(math.pi/3.5), rotated2d)
-            rotated2d = matMulti(rotationY(0), rotated2d)
-            projected2d = matMulti(projMat, rotated2d)
-            x= int(projected2d[0][0] * self.scale) + self.position[0]
-            y= int(projected2d[1][0] * self.scale) + self.position[1]
-            projectedPoints.append([x,y]) 
-        # Cube.connectPoints(canvas,0,1,projectedPoints)
-        # Cube.connectPoints(canvas,1,2,projectedPoints)
-        # Cube.connectPoints(canvas,2,3,projectedPoints)
-        # Cube.connectPoints(canvas,3,0,projectedPoints)
-
-        # Cube.connectPoints(canvas,4,5,projectedPoints)
-        # Cube.connectPoints(canvas,5,6,projectedPoints)
-        # Cube.connectPoints(canvas,6,7,projectedPoints)
-        # Cube.connectPoints(canvas,7,4,projectedPoints)
-        Cube.polygon(canvas, 4,5,6,7, projectedPoints, "#e0a6a2" )
-
-        # Cube.connectPoints(canvas,0,4,projectedPoints)
-        # Cube.connectPoints(canvas,1,5,projectedPoints)
-        # Cube.connectPoints(canvas,2,6,projectedPoints)
-        # Cube.connectPoints(canvas,3,7,projectedPoints)
-        Cube.polygon(canvas, 2,3,7,6, projectedPoints, "#d9716a")
-        Cube.polygon(canvas, 2,1,5,6, projectedPoints, "#d17d77")
-        Cube.polygon(canvas, 3,0,4,7, projectedPoints, "#ad5650")
-        Cube.polygon(canvas, 3,2,6,7, projectedPoints, "#d68883")
-        Cube.polygon(canvas, 3,0,1,2, projectedPoints, "#e6a7a3")
-        Cube.polygon(canvas, 1,0,4,5, projectedPoints, "#e89797")
-        Cube.polygon(canvas,0,1,2,3,projectedPoints, "#f7baba")
-        for point in projectedPoints:
-            canvas.create_text(point[0],point[1],
-            text=f"{projectedPoints.index(point)}", font = "Arial 20 bold" ,
-            fill='black')
-
-#furniture class
-class Furniture: 
-    def __init__(self, shapes, color):
-        self.shapes = shapes
-        self.color = color
 
 #make color wheel in the corner
 def drawColorWheel(app, canvas):
     canvas.create_image(app.colorWheelX, app.colorWheelY, 
     image=ImageTk.PhotoImage(app.colorWheel))
-
-#make trash can in the corner
-def drawTrashCan(app,canvas):
-    canvas.create_image(app.trashCanX, app.trashCanY, 
-    image=ImageTk.PhotoImage(app.trashCan))
-    
-def appStarted(app):
-    app.margin = 10
-    app.color = "#f7f7b2"
-    #scale for the selected furniture
-    app.selectedFurniture=None
-    #angle for the pov of the furniture 
-    app.angle=0
-    app.furniture=[]
-    app.scale = 130
-
-    app.colorWheel = app.loadImage('colorwheel.png')
-    app.colorWheel = app.scaleImage(app.colorWheel, app.height/(4*app.colorWheel.height))
-    app.colorWheelX = app.width/8
-    app.colorWheelY = app.height-(app.width*1/8)
-    app.colorPicked = app.color
-
-    app.trashCan = app.loadImage('trashcan.png')
-    app.trashCan = app.scaleImage(app.trashCan, app.height/(8*app.trashCan.height))
-    app.trashCanX = app.margin*5 + app.height/16
-    app.trashCanY = app.margin*5 + app.height/16
+    canvas.create_rectangle(app.colorWheelX-app.height/8,
+    app.colorWheelY- app.height/8,
+    app.colorWheelX- app.height/8+app.height/20, 
+    app.colorWheelY- app.height/8-app.height/20, 
+    fill =app.colorPicked, outline="orange3")
 
 #check if a point is within colorwheel
 def inColorWheel(app,x,y):
@@ -162,68 +27,207 @@ def getPixelColor(app, x, y):
     y=y-(app.colorWheelY-app.temp.height/2)
     return app.temp.getpixel((x,y))
 
-#take in rgb value in tuples and return hex
-def rgbToHex(rgb):
-    result = "#"
-    r=('{:X}').format(rgb[0])
-    g=('{:X}').format(rgb[1])
-    b=('{:X}').format(rgb[2])
-    for part in (r,g,b):
-        print(part)
-        if len(part)==1:
-            result+=f"0{part}"
-        else:
-            result+=str(part)
-    return result
+#make trash can in the corner
+def drawTrashCan(app,canvas):
+    canvas.create_image(app.trashCanX, app.trashCanY, 
+    image=ImageTk.PhotoImage(app.trashCan))
+    
+def appStarted(app):
+    app.margin = 10
+    app.color = "#f7f7b2"
+    #scale for the selected furniture
+    app.selectedFurniture=None
+    app.selectedShape=None
+    app.selectedShapeIndex=-1
+    #angle for the pov of the furniture 
+    app.angle=0
+    app.scale = 0
+    app.furniture=[]
+    app.timePassed=0
+
+    app.colorWheel = app.loadImage('colorwheel.png')
+    app.colorWheel = app.scaleImage(app.colorWheel, app.height/(4*app.colorWheel.height))
+    app.colorWheelX = app.width/8
+    app.colorWheelY = app.height-(app.width*1/8)
+    app.colorPicked = None
+
+    app.trashCan = app.loadImage('trashcan.png')
+    app.trashCan = app.scaleImage(app.trashCan, app.height/(8*app.trashCan.height))
+    app.trashCanX = app.margin*5 + app.height/16
+    app.trashCanY = app.margin*5 + app.height/16
+
+    #list of model furniture on the right side of the screen
+    app.scrollY = 0
+    app.modelFurniture = []
+    app.modelBed = Bed([app.width*7/8,app.height/5],25,math.pi*4/3)
+    app.modelFurniture.append(app.modelBed)
+    app.modelDrawer = Drawer([app.width*7/8,app.height*2/5],30,math.pi/3)
+    app.modelFurniture.append(app.modelDrawer)
+    app.modelCouch = Couch([app.width*6.75/8,app.height*3.15/5],20,math.pi*5.5/3)
+    app.modelFurniture.append(app.modelCouch)
+    app.modelCoffeeTable = coffeeTable([app.width*7/8,app.height*4/5], 30, math.pi/3)
+    app.modelFurniture.append(app.modelCoffeeTable)
+    app.modelChair=Chair([app.width*7/8,app.height], 20, math.pi/3)
+    app.modelFurniture.append(app.modelChair)
+    app.modelSingleSofa = singleSofa([app.width*7/8,app.height*6/5], 20, math.pi/3)
+    app.modelFurniture.append(app.modelSingleSofa)
+
+#function that check if event.key is near the model furniture and if legal, init that furniture
+def checkForLegalInit(app,x,y):
+    for furniture in app.modelFurniture:
+        if distance(x,y, furniture.getPosition()[0], furniture.getPosition()[1])<=10:
+            if type(furniture)==str:
+                #init the furniture based on its type
+                #update app.selectedFurniture to this object
+                #append the object to the existing app.furniture list
+                pass
 
 def keyPressed(app,event):
-    if event.key == 'Up': 
-        app.angle+=0.1
-    if event.key == 'Down':
-        app.angle-=0.1
-    if event.key == 'Right':
-        app.scale+=10
-    if event.key == 'Left':
-        app.scale-=10
+    if app.selectedFurniture!=None:
+        if event.key == 'Up': 
+            app.angle+=0.1
+            app.selectedFurniture.setAngle(app.angle)
+        if event.key == 'Down':
+            app.angle-=0.1
+            app.selectedFurniture.setAngle(app.angle)
+        if event.key == 'Right':
+            app.scale+=5
+            app.selectedFurniture.setScale(app.scale)
+        if event.key == 'Left':
+            app.scale-=5
+            app.selectedFurniture.setScale(app.scale)
+    if event.key =='p':
+        print(app.angle)
+        print()
+    if event.key =='w':
+        app.scrollY =-10
+        for furniture in app.modelFurniture:
+            furniture.setPosition([furniture.getPosition()[0], furniture.getPosition()[1]+app.scrollY])
+    if event.key =='s' and app.modelFurniture[0].getPosition()[1]<app.height/5:
+        app.scrollY =+10
+        for furniture in app.modelFurniture:
+            furniture.setPosition([furniture.getPosition()[0], furniture.getPosition()[1]+app.scrollY])
+    if event.key == 'Space':
+        app.scrollY=0
+    if event.key =='d':
+        if app.selectedShapeIndex<len(app.selectedFurniture.getShapes())-1:
+            app.selectedShapeIndex+=1
+            app.selectedShape = app.selectedFurniture.getShapes()[app.selectedShapeIndex]
+        if app.selectedShape!=None:
+            app.colorPicked = app.selectedShape.getColor()
+    elif event.key =='a':
+        if app.selectedShapeIndex>0:
+            app.selectedShapeIndex-=1
+            app.selectedShape = app.selectedFurniture.getShapes()[app.selectedShapeIndex]
+        if app.selectedShape!=None:
+            app.colorPicked = app.selectedShape.getColor()
+    #Press enter to finish updating shape color
+    if event.key =='Return':
+        app.selectedShape=None
+        app.selectedShapeIndex=-1
+
+
+def initFurniture(type, position, scale, angle):
+    if type=="Bed":
+        result = Bed(position,scale, angle)
+    elif type =="Drawer":
+        result = Drawer(position, scale, angle)
+    elif type =="Couch":
+        result = Couch(position, scale, angle)
+    elif type =="coffeeTable":
+        result = coffeeTable(position,  scale, angle)
+    elif type =="Chair":
+        result = Chair(position, scale, angle)
+    elif type =="singleSofa":
+        result = singleSofa(position,  scale, angle)
+    return result
 
 def mousePressed(app,event):
     if inColorWheel(app,event.x,event.y):
         color = getPixelColor(app,event.x,event.y) 
         app.colorPicked = rgbToHex(color)
-
+    for furniture in app.furniture:
+        if distance(event.x,event.y, furniture.getPosition()[0], furniture.getPosition()[1])<=10:
+            app.selectedFurniture = furniture
+            app.scale = furniture.getScale()
+            app.angle = furniture.getAngle()
+    for furniture in app.modelFurniture:
+        if distance(event.x,event.y, furniture.getPosition()[0], furniture.getPosition()[1])<=10:
+            newFurniture = initFurniture(furniture.getType(), [app.width/2, app.height/2], furniture.getScale(), furniture.getAngle())
+            app.furniture.append(newFurniture)
+            app.selectedFurniture = newFurniture
 
 def mouseDragged(app,event):
     if inColorWheel(app,event.x,event.y):
         color = getPixelColor(app,event.x,event.y)
         app.colorPicked = rgbToHex(color)
-
-def mouseReleased(app,event):
-    pass
+    elif app.selectedFurniture!=None:
+        app.selectedFurniture.setPosition((event.x,event.y))
 
 def timerFired(app):
-    pass
+    app.timePassed+=app.timerDelay
+    if app.selectedFurniture!=None:
+        tempPos = app.selectedFurniture.getPosition()
+        if distance(tempPos[0],tempPos[1], app.trashCanX, app.trashCanY)<=10:
+            app.furniture.remove(app.selectedFurniture)
+            app.selectedFurniture = None
+            app.selectedShape = None
+            app.selectedShapeIndex=-1
+    if app.selectedShapeIndex!=-1 and app.selectedFurniture!=None:
+        app.selectedShape = app.selectedFurniture.getShapes()[app.selectedShapeIndex]
+        
+
+def drawRoom(app,canvas, color):
+    points = [[-1,-1,1],[1,-1,1],[1,1,1],[-1,1,1],[-1,-1,-1],[1,-1,-1],\
+    [1,1,-1],[-1,1,-1]]
+    points2D=[]
+    for point in points:
+            #get the coordinated of the 2d projection
+            reshaped = reshape(point,3,1)
+            rotated2d = matMulti(rotationZ(math.pi/4), reshaped)
+            rotated2d = matMulti(rotationX(math.pi/3), rotated2d)
+            rotated2d = matMulti(rotationY(0), rotated2d)
+            projected2d = matMulti(projMat, rotated2d)
+            x= int(projected2d[0][0] *  180) + app.width/2
+            y= int(projected2d[1][0]  * 180) + app.height/2
+            points2D.append([x,y]) 
+    rect1 = [0,3,7,4]
+    rect2 = [0,1,5,4]
+    rect3 = [7,4,5,6]
+    colorRgb = hexToRgb(color)
+    lightColor = lightenColor(colorRgb,0.1)
+    lightColor = rgbToHex(lightColor)
+    darkColor = darkenColor(colorRgb,0.1)
+    darkColor = rgbToHex(darkColor)
+    Cuboid.polygon(canvas, rect1[0], rect1[1], rect1[2], rect1[3], points2D, color)
+    Cuboid.polygon(canvas, rect2[0], rect2[1], rect2[2], rect2[3], points2D, lightColor)
+    Cuboid.polygon(canvas, rect3[0], rect3[1], rect3[2], rect3[3], points2D, darkColor)
 
 def redrawAll(app,canvas):
     canvas.create_rectangle(0,0,app.width,app.height,fill=app.color)
-
-    #The order of points matter here testing to draw a cube
-    aPoints = [[-1,-1,1],[1,-1,1],[1,1,1],[-1,1,1],[-1,-1,-1],[1,-1,-1],\
-    [1,1,-1],[-1,1,-1]]
-    a= Cube(aPoints, app.angle, [app.width/2,app.height/2], app.scale)
-    a.draw(canvas)
-    #end of testing
-
+    drawRoom(app,canvas, "#c8bfe3")
     drawColorWheel(app, canvas)
-    #draw rectangle of sample taken from colorwheel
-    canvas.create_rectangle(app.colorWheelX-app.height/8,
-    app.colorWheelY- app.height/8,
-    app.colorWheelX- app.height/8+app.height/20, 
-    app.colorWheelY- app.height/8-app.height/20, 
-    fill =app.colorPicked, outline=app.colorPicked)
-
     drawTrashCan(app,canvas)
 
+    for furniture in app.modelFurniture:
+        furniture.draw(canvas)
+        canvas.create_oval(furniture.getPosition()[0]-2, furniture.getPosition()[1]-2,\
+        furniture.getPosition()[0]+2, furniture.getPosition()[1]+2, fill = app.color, outline = app.color)
     
+    if app.furniture!=[]:
+        for furniture in app.furniture:
+            furniture.draw(canvas)
+            canvas.create_oval(furniture.getPosition()[0]-2, furniture.getPosition()[1]-2,\
+            furniture.getPosition()[0]+2, furniture.getPosition()[1]+2, fill = app.color, outline = app.color)
+    
+    if app.selectedShape!=None:
+        app.selectedShape.setColor(app.colorPicked)
+
+    if app.selectedShapeIndex!=-1 and app.selectedShape!=None:
+        app.selectedShape.outline(canvas)
+
+    drawColorWheel(app, canvas)
+    drawTrashCan(app,canvas)
 
 runApp(width=900, height=600)
 
@@ -239,5 +243,7 @@ converting rgb to hex
 
 https://www.youtube.com/watch?v=qw0oY6Ld-L0
 isometric graphics tutorial
-'''
 
+https://news.ycombinator.com/item?id=3583564
+lightencolor
+'''
